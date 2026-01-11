@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+[package]
+name = "formdb-debugger-ui"
+description = "Terminal UI for FormDB Debugger"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+repository = "https://github.com/hyperpolymath/formdb-debugger"
+
+[[bin]]
+name = "formdb-debug"
+path = "src/main.rs"
+
+[dependencies]
+ratatui = "0.29"
+crossterm = "0.28"
+tokio = { version = "1.43", features = ["full"] }
+clap = { version = "4.5", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+formdb-debugger-postgres = { path = "../adapters/postgres" }
+formdb-debugger-formdb = { path = "../adapters/formdb" }
+formdb-debugger-sqlite = { path = "../adapters/sqlite" }

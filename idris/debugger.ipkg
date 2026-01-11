@@ -1,0 +1,16 @@
+-- SPDX-License-Identifier: AGPL-3.0-or-later
+package debugger
+
+sourcedir = "src"
+main = Main
+executable = "formdb-debug"
+
+depends = base, contrib, network
+
+modules = Main
+        , REPL.Core
+        , REPL.Commands
+        , Inspector.Schema
+        , Inspector.Data
+        , Recovery.Plan
+        , Recovery.Verify

@@ -107,8 +107,10 @@ This project is in the specification phase. The core proof library and adapters 
 == Related Projects
 
 * link:https://github.com/hyperpolymath/formdb[FormDB] - The narrative-first database this debugger supports
-* link:https://github.com/hyperpolymath/fqldt[FQLdt] - Dependently-typed Form Query Language
-* link:https://github.com/hyperpolymath/formdb-studio[FormDB Studio] - Visual interface for FormDB
+* link:https://github.com/hyperpolymath/fqldt[FQLdt] - Dependently-typed FormDB Query Language (compile-time proofs)
+* link:https://github.com/hyperpolymath/formdb-studio[FormDB Studio] - Zero-friction GUI for non-technical users
+* link:https://github.com/hyperpolymath/bofig[BoFIG] - Evidence graph for investigative journalism
+* link:https://github.com/hyperpolymath/zotero-formdb[Zotero-FormDB] - Reference manager using FormDB
 
 == License
 
