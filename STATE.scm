@@ -83,6 +83,30 @@
     (low-priority
       ("TUI needs styling and keyboard navigation")))
 
+  (formdb-alignment
+    (formdb-version "0.0.4")
+    (alignment-date "2026-01-12")
+    (status "scaffold-aligned")
+    (integration-gaps
+      (journal-types
+        "Need to add: Migration = 7, NormalizationStep = 8 to EntryType enum"
+        "FormDB migration.factor uses three-phase lifecycle")
+      (provenance-struct
+        "Add: confidence: f64, proof_blob: Option<Vec<u8>>"
+        "FormDB now tracks confidence per FD discovery")
+      (lossless-proofs
+        "Debugger LosslessProof is placeholder"
+        "Should import FormDB's Proofs.lean or fdql-dt's LosslessTransform"))
+    (compatible-now
+      "Journal header format matches FormDB journal.factor"
+      "Entry hash chain verification concept aligns"
+      "Provenance actor_id/rationale fields match")
+    (next-steps
+      "Update journal.rs EntryType to match FormDB"
+      "Add Migration type support to parse_segment"
+      "Implement verify_chain with real hash checks"
+      "Connect LosslessProof to actual decomposition theorems"))
+
   (critical-next-actions
     (immediate
       ("Implement actual Lean 4 proofs for Lossless theorem")

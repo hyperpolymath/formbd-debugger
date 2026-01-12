@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# FormDB Debugger Core Library
+# Depends on FormNormalizer from formdb repo for shared types
+
+name = "FormDBDebuggerCore"
+version = "0.1.0"
+defaultTargets = ["FormDBDebugger"]
+
+# Dependency on formdb's normalizer for shared types
+# FunDep, Schema, NormalizationStep, etc.
+[[require]]
+name = "FormNormalizer"
+path = "../../formdb/normalizer/lean"
+
+[[lean_lib]]
+name = "FormDBDebugger"
+roots = ["FormDBDebugger"]
