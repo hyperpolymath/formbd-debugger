@@ -1,13 +1,13 @@
 -- SPDX-License-Identifier: AGPL-3.0-or-later
+import FormBDDebugger.Types.Schema
+
 /-!
 # Query Types
 
 Types for database queries that can be type-checked and verified.
 -/
 
-import FormDBDebugger.Types.Schema
-
-namespace FormDBDebugger.Types
+namespace FormBDDebugger.Types
 
 /-- A value in a database row -/
 inductive Value where
@@ -18,7 +18,7 @@ inductive Value where
   | timestamp : Nat → Value  -- Unix epoch
   | uuid : String → Value
   | json : String → Value
-  | bytes : ByteArray → Value
+  | bytes : List UInt8 → Value  -- ByteArray as List for Repr
   deriving Repr, DecidableEq, BEq
 
 /-- A row is a list of column-value pairs -/
@@ -87,4 +87,4 @@ inductive Query where
   | delete : DeleteOp → Query
   deriving Repr
 
-end FormDBDebugger.Types
+end FormBDDebugger.Types

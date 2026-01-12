@@ -1,10 +1,4 @@
 -- SPDX-License-Identifier: AGPL-3.0-or-later
-/-!
-# FormBD Debugger Core Library
-
-This library provides the proof foundations for verified database recovery operations.
--/
-
 import FormBDDebugger.Types.Schema
 import FormBDDebugger.Types.Constraint
 import FormBDDebugger.Types.Query
@@ -14,3 +8,9 @@ import FormBDDebugger.State.Transaction
 import FormBDDebugger.Proofs.Lossless
 import FormBDDebugger.Proofs.FDPreserving
 import FormBDDebugger.Proofs.Rollback
+
+/-!
+# FormBD Debugger Core Library
+
+This library provides the proof foundations for verified database recovery operations.
+-/

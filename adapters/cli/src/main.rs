@@ -4,7 +4,10 @@
 //! Provides JSON-based IPC for the Idris 2 REPL to communicate with database adapters.
 
 use clap::{Parser, Subcommand};
-use formdb_debugger_postgres::{PostgresConnection, PostgresError};
+use formbd_debugger_postgres::{
+    PostgresConnection, PostgresError,
+    constraint_check::{check_all_constraints, ConstraintCheckResult, ConstraintViolation},
+};
 use serde::{Deserialize, Serialize};
 use std::io::{self, BufRead, Write};
 
@@ -21,6 +24,12 @@ struct Cli {
 enum Commands {
     /// Connect to a PostgreSQL database and introspect schema
     Schema {
+        /// PostgreSQL connection string
+        #[arg(short, long)]
+        connection: String,
+    },
+    /// Run constraint diagnostics on database
+    Diagnose {
         /// PostgreSQL connection string
         #[arg(short, long)]
         connection: String,
@@ -105,6 +114,29 @@ struct FunctionalDepOutput {
     confidence: f64,
 }
 
+/// Diagnostic results output format
+#[derive(Serialize)]
+struct DiagnoseOutput {
+    total_constraints: usize,
+    satisfied: usize,
+    violations: usize,
+    results: Vec<ConstraintCheckOutput>,
+}
+
+#[derive(Serialize)]
+struct ConstraintCheckOutput {
+    constraint_name: String,
+    constraint_type: String,
+    table_name: String,
+    satisfied: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    violation_count: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    explanation: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    sample_violations: Option<Vec<String>>,
+}
+
 /// IPC request format
 #[derive(Deserialize)]
 struct IpcRequest {
@@ -157,6 +189,19 @@ async fn main() {
                 Err(e) => {
                     let response: JsonResponse<()> = JsonResponse::err(e.to_string());
                     println!("{}", serde_json::to_string(&response).unwrap());
+                    std::process::exit(1);
+                }
+            }
+        }
+        Commands::Diagnose { connection } => {
+            match run_diagnose(&connection).await {
+                Ok(output) => {
+                    let response = JsonResponse::ok(output);
+                    println!("{}", serde_json::to_string_pretty(&response).unwrap());
+                }
+                Err(e) => {
+                    let response: JsonResponse<()> = JsonResponse::err(e.to_string());
+                    println!("{}", serde_json::to_string_pretty(&response).unwrap());
                     std::process::exit(1);
                 }
             }
@@ -241,6 +286,60 @@ async fn ping_database(connection_string: &str) -> Result<(), PostgresError> {
     conn.connect().await?;
     conn.close().await;
     Ok(())
+}
+
+async fn run_diagnose(connection_string: &str) -> Result<DiagnoseOutput, PostgresError> {
+    let mut conn = PostgresConnection::new(connection_string);
+    conn.connect().await?;
+
+    let schema = conn.introspect_schema().await?;
+
+    // Convert schema constraints to PgConstraint format for checking
+    let pg_constraints: Vec<_> = schema.constraints.iter().map(|c| {
+        formbd_debugger_postgres::schema::PgConstraint {
+            name: c.name.clone(),
+            constraint_type: match c.constraint_type.as_str() {
+                "PRIMARY KEY" => formbd_debugger_postgres::schema::ConstraintType::PrimaryKey,
+                "FOREIGN KEY" => formbd_debugger_postgres::schema::ConstraintType::ForeignKey,
+                "UNIQUE" => formbd_debugger_postgres::schema::ConstraintType::Unique,
+                "CHECK" => formbd_debugger_postgres::schema::ConstraintType::Check,
+                _ => formbd_debugger_postgres::schema::ConstraintType::Check,
+            },
+            table_schema: "public".to_string(), // Default
+            table_name: c.table_name.clone(),
+            columns: c.columns.clone(),
+            foreign_table_schema: c.foreign_table.as_ref().map(|_| "public".to_string()),
+            foreign_table_name: c.foreign_table.clone(),
+            foreign_columns: c.foreign_columns.clone(),
+            check_expression: None,
+        }
+    }).collect();
+
+    let check_results = check_all_constraints(&conn, &pg_constraints).await?;
+
+    let satisfied_count = check_results.iter().filter(|r| r.satisfied).count();
+    let violation_count = check_results.iter().filter(|r| !r.satisfied).count();
+
+    let results: Vec<ConstraintCheckOutput> = check_results.iter().map(|r| {
+        ConstraintCheckOutput {
+            constraint_name: r.constraint_name.clone(),
+            constraint_type: r.constraint_type.clone(),
+            table_name: r.table_name.clone(),
+            satisfied: r.satisfied,
+            violation_count: r.violation.as_ref().map(|v| v.violation_count),
+            explanation: r.violation.as_ref().map(|v| v.explanation.clone()),
+            sample_violations: r.violation.as_ref().map(|v| v.sample_violations.clone()),
+        }
+    }).collect();
+
+    conn.close().await;
+
+    Ok(DiagnoseOutput {
+        total_constraints: check_results.len(),
+        satisfied: satisfied_count,
+        violations: violation_count,
+        results,
+    })
 }
 
 async fn run_ipc_loop() {

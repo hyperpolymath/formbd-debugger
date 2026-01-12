@@ -1,13 +1,22 @@
 -- SPDX-License-Identifier: AGPL-3.0-or-later
+import FormBDDebugger.Types.Schema
+
 /-!
 # Database Constraint Types
 
 Types encoding database constraints that can be verified.
 -/
 
-import FormDBDebugger.Types.Schema
+namespace FormBDDebugger.Types
 
-namespace FormDBDebugger.Types
+/-- Actions on foreign key violation -/
+inductive CascadeAction where
+  | noAction : CascadeAction
+  | cascade : CascadeAction
+  | setNull : CascadeAction
+  | setDefault : CascadeAction
+  | restrict : CascadeAction
+  deriving Repr, DecidableEq
 
 /-- A foreign key constraint -/
 structure ForeignKey where
@@ -19,15 +28,6 @@ structure ForeignKey where
   onDelete : CascadeAction := CascadeAction.noAction
   onUpdate : CascadeAction := CascadeAction.noAction
   deriving Repr
-
-/-- Actions on foreign key violation -/
-inductive CascadeAction where
-  | noAction : CascadeAction
-  | cascade : CascadeAction
-  | setNull : CascadeAction
-  | setDefault : CascadeAction
-  | restrict : CascadeAction
-  deriving Repr, DecidableEq
 
 /-- A unique constraint -/
 structure UniqueConstraint where
@@ -71,4 +71,4 @@ structure ConstrainedSchema extends Schema where
   functionalDependencies : List FunctionalDependency
   deriving Repr
 
-end FormDBDebugger.Types
+end FormBDDebugger.Types

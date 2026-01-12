@@ -682,22 +682,137 @@ showAllConstraints state =
         then putStrLn "  (none)"
         else traverse_ (\c => putStrLn $ "  " ++ show c) s.constraints
 
+||| Parse diagnostics output
+parseDiagnoseResult : String -> (Nat, Nat, List String)
+parseDiagnoseResult json =
+  let total = fromMaybe 0 (extractJsonNat "total_constraints" json)
+      satisfied = fromMaybe 0 (extractJsonNat "satisfied" json)
+      violations = fromMaybe 0 (extractJsonNat "violations" json)
+      -- Extract violation explanations
+      violationMessages = extractViolationMessages json
+  in (total, violations, violationMessages)
+  where
+    extractJsonNat : String -> String -> Maybe Nat
+    extractJsonNat key j =
+      let pattern = "\"" ++ key ++ "\":"
+          chars = unpack j
+      in findAndExtractNat (unpack pattern) chars
+      where
+        startsWith : List Char -> List Char -> Bool
+        startsWith [] _ = True
+        startsWith _ [] = False
+        startsWith (p :: ps) (c :: cs) = p == c && startsWith ps cs
+
+        skipWs : List Char -> List Char
+        skipWs [] = []
+        skipWs (c :: cs) = if c == ' ' || c == '\n' || c == '\t' then skipWs cs else (c :: cs)
+
+        extractNum : List Char -> List Char -> Nat
+        extractNum [] acc = foldr (\d, n => n * 10 + d) 0 (reverse acc)
+        extractNum (c :: rest) acc =
+          if c >= '0' && c <= '9'
+            then extractNum rest (cast (ord c - ord '0') :: acc)
+            else foldr (\d, n => n * 10 + d) 0 (reverse acc)
+
+        findAndExtractNat : List Char -> List Char -> Maybe Nat
+        findAndExtractNat _ [] = Nothing
+        findAndExtractNat pat (c :: cs) =
+          if startsWith pat (c :: cs)
+            then Just (extractNum (skipWs (drop (length pat) (c :: cs))) [])
+            else findAndExtractNat pat cs
+
+    extractViolationMessages : String -> List String
+    extractViolationMessages j =
+      -- Simple extraction: look for "explanation" fields
+      let chars = unpack j
+      in collectExplanations chars []
+      where
+        collectExplanations : List Char -> List String -> List String
+        collectExplanations [] acc = reverse acc
+        collectExplanations cs acc =
+          case findExplanation cs of
+            Nothing => reverse acc
+            Just (msg, rest) => collectExplanations rest (msg :: acc)
+
+        findExplanation : List Char -> Maybe (String, List Char)
+        findExplanation cs =
+          let pattern = unpack "\"explanation\":"
+          in case findPattern pattern cs of
+            Nothing => Nothing
+            Just rest =>
+              case skipWsAndQuote rest of
+                Nothing => Nothing
+                Just afterQuote =>
+                  let (msg, remainder) = extractUntilQuote afterQuote []
+                  in Just (msg, remainder)
+
+        findPattern : List Char -> List Char -> Maybe (List Char)
+        findPattern _ [] = Nothing
+        findPattern pat (c :: cs) =
+          if startsWith pat (c :: cs)
+            then Just (drop (length pat) (c :: cs))
+            else findPattern pat cs
+
+        startsWith : List Char -> List Char -> Bool
+        startsWith [] _ = True
+        startsWith _ [] = False
+        startsWith (p :: ps) (x :: xs) = p == x && startsWith ps xs
+
+        skipWsAndQuote : List Char -> Maybe (List Char)
+        skipWsAndQuote [] = Nothing
+        skipWsAndQuote (c :: cs) =
+          if c == ' ' || c == '\n' || c == '\t' then skipWsAndQuote cs
+          else if c == '"' then Just cs
+          else Nothing
+
+        extractUntilQuote : List Char -> List Char -> (String, List Char)
+        extractUntilQuote [] acc = (pack (reverse acc), [])
+        extractUntilQuote ('"' :: rest) acc = (pack (reverse acc), rest)
+        extractUntilQuote ('\\' :: c :: rest) acc = extractUntilQuote rest (c :: acc)
+        extractUntilQuote (c :: rest) acc = extractUntilQuote rest (c :: acc)
+
 ||| Run diagnostics
 runDiagnose : DebugState -> IO ()
 runDiagnose state =
-  case state.schema of
-    Nothing => putStrLn "No schema loaded."
-    Just s => do
+  case state.connectionUri of
+    Nothing =>
+      case state.schema of
+        Nothing => putStrLn "No schema loaded. Use 'demo' or 'connect' first."
+        Just s => do
+          -- Offline mode: just check schema structure
+          putStrLn "Running constraint diagnostics (offline mode)..."
+          putStrLn ""
+          putStrLn $ "  Total constraints: " ++ show (length s.constraints)
+          putStrLn "  Status: Schema-only check (connect for full diagnostics)"
+          putStrLn ""
+          putStrLn "Constraints defined:"
+          traverse_ (\c => putStrLn $ "  [OK] " ++ show c) s.constraints
+    Just connStr => do
+      -- Online mode: use CLI backend
       putStrLn "Running constraint diagnostics..."
-      putStrLn ""
-      putStrLn "  Checking primary keys... OK"
-      putStrLn "  Checking foreign keys... OK"
-      putStrLn "  Checking unique constraints... OK"
-      putStrLn "  Checking functional dependencies... OK"
-      putStrLn ""
-      putStrLn "No violations found."
-      putStrLn ""
-      putStrLn "Note: Full diagnostics require database connection."
+      result <- execCliCommand ["diagnose", "-c", connStr]
+      case result of
+        Left err => do
+          putStrLn $ "Diagnostics failed: " ++ err
+        Right output =>
+          case extractJsonBool "success" output of
+            Just True => do
+              let (total, violations, messages) = parseDiagnoseResult output
+              putStrLn ""
+              putStrLn $ "  Total constraints: " ++ show total
+              putStrLn $ "  Satisfied: " ++ show (minus total violations)
+              putStrLn $ "  Violations: " ++ show violations
+              putStrLn ""
+              if violations == 0
+                then putStrLn "All constraints satisfied."
+                else do
+                  putStrLn "Constraint violations found:"
+                  traverse_ (\msg => putStrLn $ "  - " ++ msg) messages
+            Just False =>
+              case extractJsonValue "error" output of
+                Just errMsg => putStrLn $ "Diagnostics error: " ++ errMsg
+                Nothing => putStrLn "Diagnostics failed with unknown error."
+            Nothing => putStrLn $ "Failed to parse diagnostics response."
 
 ||| Explain a constraint
 explainConstraint : DebugState -> String -> IO ()

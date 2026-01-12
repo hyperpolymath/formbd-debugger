@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 [package]
-name = "formdb-debugger-cli"
-description = "CLI bridge for FormDB Debugger IPC"
+name = "formbd-debugger-cli"
+description = "CLI bridge for FormBD Debugger IPC"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -13,7 +13,7 @@ name = "fdb-debug"
 path = "src/main.rs"
 
 [dependencies]
-formdb-debugger-postgres = { path = "../postgres" }
+formbd-debugger-postgres = { path = "../postgres" }
 tokio.workspace = true
 serde.workspace = true
 serde_json.workspace = true

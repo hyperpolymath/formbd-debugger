@@ -1,16 +1,16 @@
 -- SPDX-License-Identifier: AGPL-3.0-or-later
+import FormBDDebugger.Types.Query
+import FormBDDebugger.State.Snapshot
+
 /-!
 # Database Delta
 
 A delta represents the changes between two snapshots.
 -/
 
-import FormDBDebugger.Types.Query
-import FormDBDebugger.State.Snapshot
+namespace FormBDDebugger.State
 
-namespace FormDBDebugger.State
-
-open FormDBDebugger.Types
+open FormBDDebugger.Types
 
 /-- A single change to the database -/
 inductive Change where
@@ -54,4 +54,4 @@ structure ReversibleDelta extends Delta where
   inverseChanges : List Change
   -- Proof that applying inverseChanges undoes changes
 
-end FormDBDebugger.State
+end FormBDDebugger.State

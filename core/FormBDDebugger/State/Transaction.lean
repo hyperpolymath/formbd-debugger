@@ -1,13 +1,13 @@
 -- SPDX-License-Identifier: AGPL-3.0-or-later
+import FormBDDebugger.State.Delta
+
 /-!
 # Database Transactions
 
 Transaction types for tracking database operations.
 -/
 
-import FormDBDebugger.State.Delta
-
-namespace FormDBDebugger.State
+namespace FormBDDebugger.State
 
 /-- Transaction isolation level -/
 inductive IsolationLevel where
@@ -62,4 +62,4 @@ def TransactionLog.inRange (log : TransactionLog) (start finish : Timestamp)
     : List Transaction :=
   log.transactions.filter (fun t => t.startTime >= start && t.startTime <= finish)
 
-end FormDBDebugger.State
+end FormBDDebugger.State

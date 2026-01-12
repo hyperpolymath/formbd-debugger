@@ -5,7 +5,7 @@
 Dependent types encoding database schema structure with constraints.
 -/
 
-namespace FormDBDebugger.Types
+namespace FormBDDebugger.Types
 
 /-- Database column data types -/
 inductive DataType where
@@ -50,4 +50,4 @@ def Schema.hasTable (s : Schema) (tableName : String) : Bool :=
 def Schema.getTable (s : Schema) (tableName : String) : Option Table :=
   s.tables.find? (fun t => t.name == tableName)
 
-end FormDBDebugger.Types
+end FormBDDebugger.Types

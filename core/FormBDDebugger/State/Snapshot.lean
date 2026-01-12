@@ -1,17 +1,17 @@
 -- SPDX-License-Identifier: AGPL-3.0-or-later
+import FormBDDebugger.Types.Schema
+import FormBDDebugger.Types.Query
+import FormBDDebugger.Types.Constraint
+
 /-!
 # Database Snapshot
 
 A snapshot represents the complete state of a database at a point in time.
 -/
 
-import FormDBDebugger.Types.Schema
-import FormDBDebugger.Types.Query
-import FormDBDebugger.Types.Constraint
+namespace FormBDDebugger.State
 
-namespace FormDBDebugger.State
-
-open FormDBDebugger.Types
+open FormBDDebugger.Types
 
 /-- Table data as a list of rows -/
 structure TableData where
@@ -49,4 +49,4 @@ structure AllConstraintsSatisfied (s : Snapshot) : Prop where
   checksSatisfied : True       -- Placeholder for check constraint verification
   notNullsSatisfied : True     -- Placeholder for not-null verification
 
-end FormDBDebugger.State
+end FormBDDebugger.State
