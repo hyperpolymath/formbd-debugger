@@ -118,4 +118,4 @@ This project is in the specification phase. The core proof library and adapters 
 
 == License
 
-AGPL-3.0-or-later
+PMPL-1.0-or-later
